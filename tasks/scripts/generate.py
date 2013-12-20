@@ -5,6 +5,7 @@ import os
 import argparse
 import hashlib
 import json
+import math
 from subprocess import call
 from distutils.spawn import find_executable
 
@@ -23,8 +24,8 @@ f = fontforge.font()
 f.encoding = 'UnicodeFull'
 f.design_size = 16
 f.em = 512
-f.ascent = 448
-f.descent = 64
+f.ascent = 512
+f.descent = 0
 
 m = hashlib.md5()
 cp = 0xf100
@@ -74,8 +75,16 @@ for dirname, dirnames, filenames in os.walk(args.input_dir):
 				glyph = f.createChar(cp)
 			glyph.importOutlines(filePath)
 
-			glyph.left_side_bearing = glyph.right_side_bearing = 0
+			# Check for vertical size and scale height equally across all icons
+			bounds = glyph.boundingBox()
+			glyph.nltransform('x*'+str(1.0 / (bounds[3] - bounds[1]) * 512), 'y*'+str(1.0 / (bounds[3] - bounds[1]) * 512))
+
+			# Re-position vertically
+			bounds = glyph.boundingBox()
+			glyph.nltransform('x*1.0', 'y*1.0 - '+str(math.ceil(bounds[1])))
+
 			glyph.round()
+			glyph.left_side_bearing = glyph.right_side_bearing = 0
 
 			files.append(name)
 			cp += 1
